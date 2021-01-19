@@ -1,38 +1,42 @@
 package main
+
 import (
+	"context"
 	"database/sql"
 	"flag"
 	"log"
 	"net/http"
 	"os"
 
-	_"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
+
 type application struct {
 	errorLog *log.Logger
-	infoLog *log.Logger
+	infoLog  *log.Logger
 }
+
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
-
-	dsn := flag.String("dsn", "web:pass@/snippetbox?parseTime=true", "Psql data source name")
 	flag.Parse()
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
-	db, err := openDB(*dsn)
+	pool, err := pgxpool.Connect(context.Background(), "user=postgres password=1 host=localhost port=5432 dbname=snippetbox sslmode=disable pool_max_conns=10")
 	if err != nil {
-		errorLog.Fatal(err)
+		log.Fatalf("Unable to connection to database: %v\n", err)
 	}
-	defer db.Close()
+
+	defer pool.Close()
+
 	app := &application{
 		errorLog: errorLog,
-		infoLog: infoLog,
+		infoLog:  infoLog,
 	}
 	srv := &http.Server{
-		Addr: *addr,
+		Addr:     *addr,
 		ErrorLog: errorLog,
-		Handler: app.routes(),
+		Handler:  app.routes(),
 	}
 	infoLog.Printf("Starting server on %s", *addr)
 	err = srv.ListenAndServe()
