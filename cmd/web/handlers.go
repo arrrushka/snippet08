@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"html/template"
+	//"html/template"
 	"net/http"
 	"sa.com/pkg/models"
 	"strconv"
@@ -11,24 +11,33 @@ import (
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		app.notFound(w) // Use the notFound() helper
+		app.notFound(w)
 		return
 	}
-	files := []string{
-		"./ui/html/home.page.tmpl",
-		"./ui/html/base.layout.tmpl",
-		"./ui/html/footer.partial.tmpl",
-	}
-	ts, err := template.ParseFiles(files...)
+	s, err := app.snippets.Latest()
 	if err != nil {
-		app.serverError(w, err) // Use the serverError() helper.
+		app.serverError(w, err)
 		return
 	}
-	err = ts.Execute(w, nil)
-	if err != nil {
-		app.serverError(w, err) // Use the serverError() helper.
+	for _, snippet := range s {
+		fmt.Fprintf(w, "%v\n", snippet)
 	}
+	// files := []string{
+	// "./ui/html/home.page.tmpl",
+	// "./ui/html/base.layout.tmpl",
+	// "./ui/html/footer.partial.tmpl",
+	// }
+	// ts, err := template.ParseFiles(files...)
+	// if err != nil {
+	// app.serverError(w, err)
+	// return
+	// }
+	// err = ts.Execute(w, nil)
+	// if err != nil {
+	// app.serverError(w, err)
+	// }
 }
+
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 1 {
