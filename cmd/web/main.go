@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
 	"log"
 	"net/http"
 	"os"
+	"sa.com/pkg/models/postgres"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 )
@@ -14,6 +14,7 @@ import (
 type application struct {
 	errorLog *log.Logger
 	infoLog  *log.Logger
+	snippets *postgres.SnippetModel
 }
 
 func main() {
@@ -22,48 +23,24 @@ func main() {
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
-	pool, err := pgxpool.Connect(context.Background(), "user=postgres password=1 host=localhost port=5432 dbname=snippetbox sslmode=disable pool_max_conns=10")
+	pool, err := pgxpool.Connect(context.Background(), "user=postgres password=12345 host=0.0.0.0 port=5432 dbname=snippetbox sslmode=disable pool_max_conns=10")
 	if err != nil {
-		log.Fatalf("Unable to connection to database: %v\n", err)
+		log.Fatalf("Unable to connection to database : %v\n", err)
 	}
-
+	snippets := postgres.SnippetModel{Pool: pool}
 	defer pool.Close()
 
-	app := &application{
+	var app = &application{
 		errorLog: errorLog,
 		infoLog:  infoLog,
+		snippets: &snippets,
 	}
 	srv := &http.Server{
 		Addr:     *addr,
 		ErrorLog: errorLog,
-		Handler:  app.routes(),
+		Handler:  app.routes(), // Call the new app.routes() method
 	}
 	infoLog.Printf("Starting server on %s", *addr)
 	err = srv.ListenAndServe()
 	errorLog.Fatal(err)
-}
-
-func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		return nil, err
-	}
-	if err = db.Ping(); err != nil {
-		return nil, err
-	}
-	return db, nil
-
-	//connStr := "user=postgres password=mypass dbname=productdb sslmode=disable"
-	//db, err := sql.Open("postgres", connStr)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//defer db.Close()
-	//
-	//result, err := db.Exec("insert into Products (model, company, price) values ('iPhone X', $1, $2)",
-	//	"Apple", 72000)
-	//if err != nil{
-	//	panic(err)
-	//}
-
 }
