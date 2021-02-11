@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres
+    container_name: "database"
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=snippetbox
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1
+    networks:
+      - fullstack
+    volumes:
+      - database_postgres:/var/lib/postgresql/data
+
+  web:
+    image: arushka/snippet08
+    container_name: "snippet"
+    environment:
+      - DB_PASSWORD=1
+      - DB_DB=snippetbox
+      - DB_HOST=db
+      - DB_TABLE=snippets
+      - DB_PORT=5432
+    ports:
+      - '4000:4000'
+    depends_on:
+      - db
+    networks:
+      - fullstack
+
+volumes:
+  database_postgres:
+
+networks:
+  fullstack:
+    driver: bridge
